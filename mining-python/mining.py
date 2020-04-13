@@ -8,15 +8,15 @@ difficulty = 5
 prefix = "0" * difficulty
 
 # Number of trials
-ntrial = 5
+ntrial = 10
 
 data = "parallel-mining-benchmark"
 global_result = None
 
 def sequential():
-    nonce = 0
     global global_result
     for i in range(ntrial):
+        nonce = 0
         ldata = data + str(i)
         while True:
             s = ldata + str(nonce)
@@ -32,19 +32,20 @@ def sequential():
 # because it is essentially a 'race' between the thread
 found = False
 def mining(id, nthread, ldata):
-    global found
+    global found, global_result
     nonce = id
     while not found:
         s = ldata + str(nonce)
         result = hashlib.sha256(s.encode())
         if result.hexdigest()[:5] == prefix:
             global_result = result.hexdigest()
-            break
+            found = True
         nonce += nthread
 
 def parallel_multi_thread(nthread):
     threads = []
     for i in range(ntrial):
+        global found
         found = False
         ldata = data + str(i)
         for i in range(nthread):
@@ -58,6 +59,7 @@ def parallel_multi_thread(nthread):
 def parallel_multi_process(nproc):
     procs = []
     for i in range(ntrial):
+        global found
         found = False
         ldata = data + str(i)
         for i in range(nproc):
@@ -69,7 +71,9 @@ def parallel_multi_process(nproc):
             p.join()
     
 def main():
-    print(f"difficult: {difficulty}, number of trials: {ntrial}")
+    print("-" * 40)
+    print("Python Version:")
+    print(f"difficulty: {difficulty}, number of trials: {ntrial}")
 
     # sequential
     print("-" * 40)
@@ -77,31 +81,35 @@ def main():
     sequential()
     end = time.perf_counter()
     print(f"sequential version:")
-    print(f"total time consumed: {end - start}")
-    print(f"average time consumed: {(end - start) / ntrial}")
+    print(f"total time consumed: {end - start:.4f} s")
+    print(f"average time consumed: {(end - start) / ntrial:.4f} s")
     print(f"last hash computed: {global_result}")
 
-    # # multi-thread parallel
-    print("-" * 40)
-    nthread = 4
-    start = time.perf_counter()
-    parallel_multi_thread(nthread)
-    end = time.perf_counter()
-    print(f"{nthread} thread parallel version:")
-    print(f"time consumed: {end - start}")
-    print(f"average time consumed: {(end - start) / ntrial}")
-    print(f"last hash computed: {global_result}")
+    # multi-thread parallel
+    nthreads = [2, 4, 8, 16]
+    for nthread in nthreads:
+        print("-" * 40)
+        start = time.perf_counter()
+        parallel_multi_thread(nthread)
+        end = time.perf_counter()
+        print(f"{nthread} thread parallel version:")
+        print(f"time consumed: {end - start:.4f} s")
+        print(f"average time consumed: {(end - start) / ntrial:.4f} s")
+        print(f"last hash computed: {global_result}")
 
     # multi-process parallel
-    print("-" * 40)
-    nproc = 8
-    start = time.perf_counter()
-    parallel_multi_process(nproc)
-    end = time.perf_counter()
-    print(f"{nproc} processes parallel version:")
-    print(f"time consumed: {end - start}")
-    print(f"average time consumed: {(end - start) / ntrial}")
-    print(f"last hash computed: {global_result}")
+    nprocs = [2, 4, 8, 16]
+    for nproc in nprocs:
+        print("-" * 40)
+        start = time.perf_counter()
+        parallel_multi_process(nproc)
+        end = time.perf_counter()
+        print(f"{nproc} processes parallel version:")
+        print(f"time consumed: {end - start:.4f} s")
+        print(f"average time consumed: {(end - start) / ntrial:.4f} s")
+        print(f"last hash computed: {global_result}")
+    print()
+    print()
 
 if __name__ == "__main__":
     main()
